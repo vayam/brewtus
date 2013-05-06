@@ -1,7 +1,7 @@
 # brewtus
 
-TUS Server Protocol 0.2 Implementation
-http://www.tus.io/protocols/resumable-upload.html
+[TUS Protocol 0.2](http://www.tus.io/protocols/resumable-upload.html) Server Implementation
+
 
 ## Configuration
 edit brewtus.json
@@ -19,6 +19,12 @@ edit brewtus.json
 ```
 coffee -c brewtus.coffee
 node brewtus.js
+```
+
+## Test
+Get [tuspy](https://github.com/vayam/tuspy) client
+```
+python tuspy.py -f <file>
 ```
 
 ## License
