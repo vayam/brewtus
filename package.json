@@ -1,0 +1,19 @@
+{
+    "name": "brewtus",
+    "author": "Naren Venkataraman <naren@doorul.com>",
+    "description": "TUS Server Implementation for coffee lovers",
+    "version": "0.0.1",
+    "main": "brewtus.coffee",
+    "dependencies": {
+        "coffee-script": "latest",
+        "node-uuid": "latest"
+     },
+    "keywords": [
+        "upload",
+        "tus"
+     ],
+    "repository": "git://github.com/vayam/brewtus",
+    "engines": {
+        "node": "0.10.x"
+    }
+}
