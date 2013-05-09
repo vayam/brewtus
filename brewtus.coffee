@@ -29,6 +29,11 @@ createFile = (req, res, query, matches) ->
     #The request MUST include a Final-Length header
     return httpStatus res, 400, "Final-Length Required" unless req.headers["final-length"]?
 
+    finalLength = parseInt req.headers["final-length"]
+
+    #The value MUST be a non-negative integer.
+    return httpStatus res, 400, "Final-Length Must be Non-Negative" if isNaN finalLength || finalLength < 0
+
     #generate fileId
     fileId = uuid.v1()
 
@@ -39,7 +44,7 @@ createFile = (req, res, query, matches) ->
         util.log util.inspect error
         return httpStatus res, 500, "Create Failed"
 
-    uploads[fileId] = {finalLength: req.headers["final-length"], state: "created", createdOn: Date.now(), offset: 0}
+    uploads[fileId] = {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
     res.setHeader "Location", "http://#{config.host}:#{config.port}/files/#{fileId}"
     httpStatus res, 201, "Created"
 
@@ -73,12 +78,18 @@ patchFile = (req, res, query, matches) ->
     filePath = path.join config.files, fileId
     return httpStatus res, 404, "Not Found" unless fs.existsSync filePath
 
+    #All PATCH requests MUST use Content-Type: application/offset+octet-stream.
+    return httpStatus res, 400, "Content-Type Required" unless req.headers["content-type"]?
+ 
+    return httpStatus res, 400, "Content-Type Invalid" unless req.headers["content-type"] is "application/offset+octet-stream"
+
+
     #5.2.1. Offset
     return httpStatus res, 400, "Offset Required" unless req.headers["offset"]?
 
     #The value MUST be an integer that is 0 or larger
     offsetIn = parseInt req.headers["offset"]
-    return httpStatus res, 400, "Invalid Offset" if isNaN offsetIn or offsetIn < 0
+    return httpStatus res, 400, "Offset Invalid" if isNaN offsetIn or offsetIn < 0
 
     return httpStatus res, 400, "Content-Length Required" unless req.headers["content-length"]?
 
@@ -97,7 +108,7 @@ patchFile = (req, res, query, matches) ->
             offset = stat.size
             uploads[fileId] = {offset: offset}
         catch e
-            util.log "file error #{fileId} #{util.inspect e}"
+            #util.log "file error #{fileId} #{util.inspect e}"
             return httpStatus res, 500, "File Error"
 
     return httpStatus res, 400, "Invalid Offset" if offsetIn > offset
