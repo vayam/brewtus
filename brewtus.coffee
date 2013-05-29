@@ -6,14 +6,14 @@ util = require "util"
 events = require "events"
 
 uuid = require "node-uuid"
+uploads = require "node-persist"
+
+
 
 
 setup = new events.EventEmitter()
 config = {}
 
-#@todo
-#persist these in redis
-uploads = {}
 
 #Implements Browser Uploads
 optionsFile = (req, res, query, matches) ->
@@ -44,7 +44,7 @@ createFile = (req, res, query, matches) ->
         util.log util.inspect error
         return httpStatus res, 500, "Create Failed"
 
-    uploads[fileId] = {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
+    uploads.setItem fileId, {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
     res.setHeader "Location", "http://#{config.host}:#{config.port}/files/#{fileId}"
     httpStatus res, 201, "Created"
 
@@ -55,19 +55,21 @@ headFile = (req, res, query, matches) ->
 
     filePath = path.join config.files, fileId
     return httpStatus res, 404, "Not Found" unless fs.existsSync filePath 
+ 
 
+    currentUpload = uploads.getItem fileId
+    return httpStatus res, 404, "File Not Found" unless currentUpload?
 
-    if not uploads[fileId]? or not uploads[fileId].offset?
+    if not offset?
         try
             stat = fs.statSync filePath
-            #util.log util.inspect stat
-            #@todo build creation time
-            uploads[fileId] = {offset: stat.size}
+            currentUpload.offset = stat.size
+            uploads.setItem fileId , currentUpload
         catch e
             util.log "file error #{fileId} #{util.inspect e}"
             return httpStatus res, 500, "File Error"
 
-    res.setHeader "Offset", uploads[fileId].offset
+    res.setHeader "Offset", currentUpload.offset
     httpStatus res, 200, "Ok"
 
 #Implements 5.3.2. PATCH
@@ -96,22 +98,20 @@ patchFile = (req, res, query, matches) ->
     contentLength = parseInt req.headers["content-length"]
     return httpStatus res, 400, "Invalid Content-Length" if isNaN contentLength or contentLength < 1
 
-
-    offset = 0
-    if uploads[fileId]?
-        offset =  uploads[fileId].offset
-    else
+    currentUpload = uploads.getItem fileId    
+    return httpStatus res, 404, "File Not Found" unless currentUpload?
+    
+    offset =  currentUpload.offset
+    if not offset?
         try
             stat = fs.statSync filePath
-            #util.log util.inspect stat
-            #@todo rebuild creation
-            offset = stat.size
-            uploads[fileId] = {offset: offset}
+            currentUpload.offset = stat.size
+            uploads.setItem fileId, currentUpload
         catch e
-            #util.log "file error #{fileId} #{util.inspect e}"
+            util.log "file error #{fileId} #{util.inspect e}"
             return httpStatus res, 500, "File Error"
 
-    return httpStatus res, 400, "Invalid Offset" if offsetIn > offset
+    return httpStatus res, 400, "Offset Range Exceeded" unless offsetIn <= currentUpload.offset
 
     #Open file for writing
     ws = fs.createWriteStream filePath, {flags: "r+", start: offsetIn}
@@ -121,20 +121,23 @@ patchFile = (req, res, query, matches) ->
         util.log "unable to create file #{filePath}"
         return httpStatus res, 500, "File Error"
 
-    uploads[fileId].offset = offsetIn
-    uploads[fileId].state = "patched"
-    uploads[fileId].patchedOn = Date.now()
-    uploads[fileId].bytesReceived = 0 
+    currentUpload.offset = offsetIn
+    currentUpload.state = "patched"
+    currentUpload.patchedOn = Date.now()
+    currentUpload.bytesReceived = 0 
+    uploads.setItem fileId, currentUpload
 
     req.pipe ws
 
     req.on "data", (buffer) ->
-        #util.log "old Offset #{uploads[fileId].offset}"
-        uploads[fileId].bytesReceived += buffer.length
-        uploads[fileId].offset +=  buffer.length
-        #util.log "new Offset #{uploads[fileId].offset}"
-        return httpStatus res, 500, "Exceeded Final-Length" if uploads[fileId].offset > uploads[fileId].finalLength
-        return httpStatus res, 500, "Exceeded Content-Length" if uploads[fileId].received > contentLength
+        util.log "old Offset #{currentUpload.offset}"
+        currentUpload.bytesReceived += buffer.length
+        currentUpload.offset +=  buffer.length
+        util.log "new Offset #{currentUpload.offset}"
+        return httpStatus res, 500, "Exceeded Final-Length" unless currentUpload.offset <= currentUpload.finalLength
+        return httpStatus res, 500, "Exceeded Content-Length" unless currentUpload.received <= contentLength
+        uploads.setItem fileId, currentUpload
+
 
     ws.on "close", ->
         #util.log "closed the file stream #{fileId}"
@@ -203,6 +206,14 @@ initApp = (args) ->
         if error? and error.code isnt "EEXIST"
             util.log util.inspect error
             process.exit 1
+
+    try
+        uploads.initSync({logging:true})
+        uploads.values (vals) -> console.log vals
+    catch error
+        util.log util.inspect error
+        process.exit 1
+
     setup.emit "setupComplete"
 
 startup = (args) ->
