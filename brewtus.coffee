@@ -11,11 +11,65 @@ uuid = require "node-uuid"
 setup = new events.EventEmitter()
 config = {}
 
-#@todo
-#persist these in redis
-uploads = {}
 
-#Implements Browser Uploads
+#Stores File Info in json
+class Upload
+    constructor: (fileId) ->
+        @fileId = fileId
+        @filePath = path.join config.files, fileId
+        @infoPath = path.resolve "#{@filePath}.json"
+        @info = null
+
+
+    create: (finalLength) ->
+        try
+            fs.openSync @filePath, 'w'
+        catch error
+            util.log util.inspect error
+            return {error: [500, "Create Failed"]}
+
+        try
+            info = {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
+            fs.writeFileSync @infoPath, JSON.stringify info
+            @info = info
+        catch error
+            util.log util.inspect error
+            return {error: [500, "Create Failed - Metadata"]}
+        return {info: @info}
+
+    save: ->
+        try
+            fs.writeFileSync @infoPath, JSON.stringify @info
+        catch error
+            util.log util.inspect error
+            return {error: [500, "Save Failed - Metadata"]}
+        return {info: @info}
+
+    load: ->
+        filePath = path.join config.files, @fileId
+        return {error: [404, "File Not Found"]} unless fs.existsSync filePath 
+
+        try
+            @info = require @infoPath
+        catch error
+            util.log util.inspect error
+            return {error: [404, "Not Found - Metadata"]}
+
+        #Force Update offset
+        try
+            stat = fs.statSync filePath
+            @info.offset = stat.size
+        catch e
+            util.log "file error #{fileId} #{util.inspect e}"
+            return {error: [500, "File Load Error"]}
+
+        return {info: @info}
+
+
+
+
+
+#Required for Browser Uploads
 optionsFile = (req, res, query, matches) ->
     httpStatus res, 200, "Ok"
 
@@ -35,16 +89,12 @@ createFile = (req, res, query, matches) ->
     return httpStatus res, 400, "Final-Length Must be Non-Negative" if isNaN finalLength || finalLength < 0
 
     #generate fileId
-    fileId = uuid.v1()
+    fileId =  uuid.v1()
+    status = new Upload(fileId).create(finalLength)
 
-    try
-        filePath = path.join config.files, fileId
-        fs.openSync filePath, 'w'
-    catch error
-        util.log util.inspect error
-        return httpStatus res, 500, "Create Failed"
+    if status.error?
+        return httpStatus res, status.error[0],  status.error[1]
 
-    uploads[fileId] = {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
     res.setHeader "Location", "http://#{config.host}:#{config.port}/files/#{fileId}"
     httpStatus res, 201, "Created"
 
@@ -53,21 +103,11 @@ headFile = (req, res, query, matches) ->
     fileId = matches[2]
     return httpStatus res, 404, "Not Found" unless fileId?
 
-    filePath = path.join config.files, fileId
-    return httpStatus res, 404, "Not Found" unless fs.existsSync filePath 
+    status = new Upload(fileId).load()
+    if status.error?
+        return httpStatus res, status.error[0],  status.error[1]
 
-
-    if not uploads[fileId]? or not uploads[fileId].offset?
-        try
-            stat = fs.statSync filePath
-            #util.log util.inspect stat
-            #@todo build creation time
-            uploads[fileId] = {offset: stat.size}
-        catch e
-            util.log "file error #{fileId} #{util.inspect e}"
-            return httpStatus res, 500, "File Error"
-
-    res.setHeader "Offset", uploads[fileId].offset
+    res.setHeader "Offset", status.info.offset
     httpStatus res, 200, "Ok"
 
 #Implements 5.3.2. PATCH
@@ -97,21 +137,13 @@ patchFile = (req, res, query, matches) ->
     return httpStatus res, 400, "Invalid Content-Length" if isNaN contentLength or contentLength < 1
 
 
-    offset = 0
-    if uploads[fileId]?
-        offset =  uploads[fileId].offset
-    else
-        try
-            stat = fs.statSync filePath
-            #util.log util.inspect stat
-            #@todo rebuild creation
-            offset = stat.size
-            uploads[fileId] = {offset: offset}
-        catch e
-            #util.log "file error #{fileId} #{util.inspect e}"
-            return httpStatus res, 500, "File Error"
+    u = new Upload(fileId)
+    status = u.load()
+    if status.error?
+        return httpStatus res, status.error[0],  status.error[1]
+    info = status.info
 
-    return httpStatus res, 400, "Invalid Offset" if offsetIn > offset
+    return httpStatus res, 400, "Invalid Offset" if offsetIn > info.offset
 
     #Open file for writing
     ws = fs.createWriteStream filePath, {flags: "r+", start: offsetIn}
@@ -121,25 +153,27 @@ patchFile = (req, res, query, matches) ->
         util.log "unable to create file #{filePath}"
         return httpStatus res, 500, "File Error"
 
-    uploads[fileId].offset = offsetIn
-    uploads[fileId].state = "patched"
-    uploads[fileId].patchedOn = Date.now()
-    uploads[fileId].bytesReceived = 0 
+    info.offset = offsetIn
+    info.state = "patched"
+    info.patchedOn = Date.now()
+    info.bytesReceived = 0 
 
     req.pipe ws
 
     req.on "data", (buffer) ->
-        #util.log "old Offset #{uploads[fileId].offset}"
-        uploads[fileId].bytesReceived += buffer.length
-        uploads[fileId].offset +=  buffer.length
-        #util.log "new Offset #{uploads[fileId].offset}"
-        return httpStatus res, 500, "Exceeded Final-Length" if uploads[fileId].offset > uploads[fileId].finalLength
-        return httpStatus res, 500, "Exceeded Content-Length" if uploads[fileId].received > contentLength
+        #util.log "old Offset #{info.offset}"
+        info.bytesReceived += buffer.length
+        info.offset +=  buffer.length
+        #util.log "new Offset #{info.offset}"
+        return httpStatus res, 500, "Exceeded Final-Length" if info.offset > info.finalLength
+        return httpStatus res, 500, "Exceeded Content-Length" if info.received > contentLength
 
     ws.on "close", ->
         #util.log "closed the file stream #{fileId}"
         #util.log util.inspect res
         httpStatus res, 200, "Ok" unless res.headersSent
+        u.save(info)
+
 
     ws.on "error", (e) ->
         util.log "closed the file stream #{fileId} #{util.inspect e}"
