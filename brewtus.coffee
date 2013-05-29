@@ -106,8 +106,11 @@ headFile = (req, res, query, matches) ->
     status = new Upload(fileId).load()
     if status.error?
         return httpStatus res, status.error[0],  status.error[1]
+    info = status.info
 
-    res.setHeader "Offset", status.info.offset
+    res.setHeader "Offset", info.offset
+    res.removeHeader "Content-Length"
+    res.setHeader "Connection", "close"
     httpStatus res, 200, "Ok"
 
 #Implements 5.3.2. PATCH
