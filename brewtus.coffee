@@ -67,11 +67,23 @@ class Upload
 
 
 
+#testUploadPage
+testUploadPage = (res) ->
+    fs.readFile path.join(__dirname , "/up.html"), "utf8", (err, data) ->
+        res.setHeader "Content-Type", "text/html"
+        return httpStatus res, 200, "Ok", data  unless err
+        
+        util.log util.inspect err
+        httpStatus res, 405, "Not Allowed"
 
 
 #Required for Browser Uploads
 optionsFile = (req, res, query, matches) ->
     httpStatus res, 200, "Ok"
+
+#@todo implement psuedo Final-Length stream
+getFile = (req, res, query, matches) ->
+    httpStatus res, 405, "Not Allowed" 
 
 #Implements 6.1. File Creation
 createFile = (req, res, query, matches) ->
@@ -109,7 +121,6 @@ headFile = (req, res, query, matches) ->
     info = status.info
 
     res.setHeader "Offset", info.offset
-    res.removeHeader "Content-Length"
     res.setHeader "Connection", "close"
     httpStatus res, 200, "Ok"
 
@@ -183,14 +194,14 @@ patchFile = (req, res, query, matches) ->
         #Send response
         return httpStatus res, 500, "File Error"
 
-httpStatus = (res, statusCode, reason) ->
+httpStatus = (res, statusCode, reason, body='') ->
     res.writeHead statusCode, reason
-    res.end()
+    res.end(body)
 
-ALLOWED_METHODS = ["HEAD", "PATCH", "POST", "OPTIONS"]
+ALLOWED_METHODS = ["HEAD", "PATCH", "POST", "OPTIONS", "GET"]
 ALLOWED_METHODS_STR = ALLOWED_METHODS.join ","
 PATTERNS = [
-    {match:/files(\/(.+))*/, HEAD:headFile, PATCH:patchFile, POST:createFile, OPTIONS:optionsFile}
+    {match:/files(\/(.+))*/, HEAD:headFile, PATCH:patchFile, POST:createFile, OPTIONS:optionsFile, GET:getFile}
 ]
 route = (req, res) ->
     #util.log util.inspect req
@@ -200,7 +211,14 @@ route = (req, res) ->
     parsed = url.parse req.url, true
     urlPath = parsed.pathname
 
+    util.log "URLPATH: #{urlPath}"
+    #Add Test Route
+    if urlPath is "/" 
+        return httpStatus res, 405, "Not Allowed"  unless req.method is "GET"
+        return testUploadPage res
+
     return httpStatus res, 405, "Not Allowed" unless urlPath.length > 1
+
     
     query = parsed.query
     #util.log urlPath
@@ -216,9 +234,9 @@ commonHeaders = (res) ->
     res.setHeader "Server", config.server
     res.setHeader "Access-Control-Allow-Origin", "*"
     res.setHeader "Access-Control-Allow-Methods", ALLOWED_METHODS_STR
-    res.setHeader "Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept"
+    res.setHeader "Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Final-Length, Offset"
     res.setHeader "Access-Control-Expose-Headers", "Location"
-    res.setHeader "Content-Length", 0 #This is default
+    #res.setHeader "Content-Length", 0 #This is default
 
 tusHandler = (req, res) ->
     commonHeaders(res)
