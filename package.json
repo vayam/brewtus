@@ -6,7 +6,8 @@
     "main": "brewtus.coffee",
     "dependencies": {
         "coffee-script": "latest",
-        "node-uuid": "latest"
+        "node-uuid": "latest",
+        "winston": "latest"
      },
     "keywords": [
         "upload",

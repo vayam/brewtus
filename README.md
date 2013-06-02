@@ -7,12 +7,17 @@
 edit brewtus.json
 ```js
 {
- "host":"127.0.0.1",
- "port":8080, 
- "server": "BrewTUS/0.1",
- "files":"files"
- }
+	"host": "192.168.1.117",
+	"port": 8080, 
+	"server": "BrewTUS/0.1",
+	"files": "files",
+	"logDir": "logs",
+	"logRotateSize": 10485760,
+	"logLevel": "info"
+}
 ```
+Allowed [log levels](https://github.com/flatiron/winston#using-logging-levels): debug, info, warn, error
+LogRotateSize: 10MB default
 
 ## Install
 ```

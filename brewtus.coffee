@@ -6,6 +6,7 @@ util = require "util"
 events = require "events"
 
 uuid = require "node-uuid"
+winston = require "winston"
 
 
 setup = new events.EventEmitter()
@@ -25,7 +26,7 @@ class Upload
         try
             fs.openSync @filePath, 'w'
         catch error
-            util.log util.inspect error
+            winston.error util.inspect error
             return {error: [500, "Create Failed"]}
 
         try
@@ -33,7 +34,7 @@ class Upload
             fs.writeFileSync @infoPath, JSON.stringify info
             @info = info
         catch error
-            util.log util.inspect error
+            winston.error util.inspect error
             return {error: [500, "Create Failed - Metadata"]}
         return {info: @info}
 
@@ -41,7 +42,7 @@ class Upload
         try
             fs.writeFileSync @infoPath, JSON.stringify @info
         catch error
-            util.log util.inspect error
+            winston.error util.inspect error
             return {error: [500, "Save Failed - Metadata"]}
         return {info: @info}
 
@@ -52,7 +53,7 @@ class Upload
         try
             @info = require @infoPath
         catch error
-            util.log util.inspect error
+            winston.error util.inspect error
             return {error: [404, "Not Found - Metadata"]}
 
         #Force Update offset
@@ -60,11 +61,10 @@ class Upload
             stat = fs.statSync filePath
             @info.offset = stat.size
         catch e
-            util.log "file error #{fileId} #{util.inspect e}"
+            winston.error "file error #{fileId} #{util.inspect e}"
             return {error: [500, "File Load Error"]}
 
         return {info: @info}
-
 
 
 #testUploadPage
@@ -73,9 +73,8 @@ testUploadPage = (res) ->
         res.setHeader "Content-Type", "text/html"
         return httpStatus res, 200, "Ok", data  unless err
         
-        util.log util.inspect err
+        winston.error util.inspect err
         httpStatus res, 405, "Not Allowed"
-
 
 #Required for Browser Uploads
 optionsFile = (req, res, query, matches) ->
@@ -161,10 +160,9 @@ patchFile = (req, res, query, matches) ->
 
     #Open file for writing
     ws = fs.createWriteStream filePath, {flags: "r+", start: offsetIn}
-    #util.log util.inspect ws
 
     unless ws?
-        util.log "unable to create file #{filePath}"
+        winston.error "unable to create file #{filePath}"
         return httpStatus res, 500, "File Error"
 
     info.offset = offsetIn
@@ -175,22 +173,22 @@ patchFile = (req, res, query, matches) ->
     req.pipe ws
 
     req.on "data", (buffer) ->
-        #util.log "old Offset #{info.offset}"
+        winston.debug "old Offset #{info.offset}"
         info.bytesReceived += buffer.length
         info.offset +=  buffer.length
-        #util.log "new Offset #{info.offset}"
+        winston.debug "new Offset #{info.offset}"
         return httpStatus res, 500, "Exceeded Final-Length" if info.offset > info.finalLength
         return httpStatus res, 500, "Exceeded Content-Length" if info.received > contentLength
 
     ws.on "close", ->
-        #util.log "closed the file stream #{fileId}"
-        #util.log util.inspect res
+        winston.info "closed the file stream #{fileId}"
+        winston.debug util.inspect res
         httpStatus res, 200, "Ok" unless res.headersSent
         u.save(info)
 
 
     ws.on "error", (e) ->
-        util.log "closed the file stream #{fileId} #{util.inspect e}"
+        winston.error "closed the file stream #{fileId} #{util.inspect e}"
         #Send response
         return httpStatus res, 500, "File Error"
 
@@ -204,14 +202,14 @@ PATTERNS = [
     {match:/files(\/(.+))*/, HEAD:headFile, PATCH:patchFile, POST:createFile, OPTIONS:optionsFile, GET:getFile}
 ]
 route = (req, res) ->
-    #util.log util.inspect req
+    winston.debug util.inspect req
     return httpStatus res, 405, "Not Allowed" unless req.method in ALLOWED_METHODS
 
     #Get request param handling
     parsed = url.parse req.url, true
     urlPath = parsed.pathname
 
-    util.log "URLPATH: #{urlPath}"
+    winston.info "URLPATH: #{urlPath}"
     #Add Test Route
     if urlPath is "/" 
         return httpStatus res, 405, "Not Allowed"  unless req.method is "GET"
@@ -219,16 +217,13 @@ route = (req, res) ->
 
     return httpStatus res, 405, "Not Allowed" unless urlPath.length > 1
 
-    
     query = parsed.query
-    #util.log urlPath
     for pattern in PATTERNS
         matches = urlPath.match pattern.match
-        util.log "matches #{util.inspect matches}"
+        winston.debug "#{util.inspect matches}"
         if matches?
              return pattern[req.method](req, res, query, matches)
     return httpStatus res, 405, "Not Allowed"
-
 
 commonHeaders = (res) ->
     res.setHeader "Server", config.server
@@ -236,28 +231,64 @@ commonHeaders = (res) ->
     res.setHeader "Access-Control-Allow-Methods", ALLOWED_METHODS_STR
     res.setHeader "Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Final-Length, Offset"
     res.setHeader "Access-Control-Expose-Headers", "Location"
-    #res.setHeader "Content-Length", 0 #This is default
-
+ 
 tusHandler = (req, res) ->
     commonHeaders(res)
     route req, res
 
+setupLogger = (logDir, logFileName, logRotateSize) ->
+
+    #setup logger
+    try
+        fs.mkdirSync logDir
+    catch error
+        if error? and error.code isnt "EEXIST"
+            winston.error util.inspect error
+            process.exit 1
+
+    #Rotate Log
+    opts = {flags: 'a', encoding: 'utf8', bufferSize: 0}
+    logfw = fs.createWriteStream logFileName, opts
+    logfw.once "open", (logfd) ->
+        fs.watchFile logFileName, (cur, prev) ->
+            if cur.size > logRotateSize
+                fs.truncate(logfd, 0)
+                winston.warn "Rotated logfile"
+
+    process.on 'uncaughtException', (err) ->
+        winston.error "uncaught exception #{util.inspect err}"
+        logfw.once "drain", -> process.exit 1
+
+    winston.add winston.transports.File, {stream: logfw, level: config.logLevel, json: false, timestamp: true}
+    winston.remove winston.transports.Console
+
 #load config, create files folder
 initApp = (args) ->
-    #hacky but works
+
+    fileNamePrefix = path.basename __filename, path.extname __filename
+
     #my configuration -> scriptname.json
-    configFileName = path.join(path.dirname(args[1]), "#{path.basename args[1], path.extname args[1]}.json")
-    util.log "Reading #{configFileName}"
-    config = require configFileName
+    configFileName = path.join __dirname, "#{fileNamePrefix}.json"
+    winston.debug "Reading #{configFileName}"
+    try
+        config = require configFileName
+    catch error
+        winston.error "Failed to load #{configFileName}"
+    winston.debug util.inspect config
 
-    #util.log util.inspect config
+    #setup logging
+    logDir = config.logDir or path.join __dirname, "logs"
+    logFileName = path.join logDir, "#{fileNamePrefix}.log"
+    setupLogger logDir, logFileName, config.logRotateSize
 
+    #Create files directory
     try
         fs.mkdirSync config.files
     catch error
         if error? and error.code isnt "EEXIST"
-            util.log util.inspect error
+            winston.error util.inspect error
             process.exit 1
+
     setup.emit "setupComplete"
 
 startup = (args) ->
@@ -265,7 +296,7 @@ startup = (args) ->
         server = http.createServer tusHandler
         server.timeout = 30000 #servers SHOULD use a 30 second timeout
         server.listen config.port
-        util.log "Server running at http://#{config.host}:#{config.port}/" 
+        winston.info "Server running at http://#{config.host}:#{config.port}/" 
 
     initApp args
 
