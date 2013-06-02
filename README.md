@@ -16,8 +16,8 @@ edit brewtus.json
 	"logLevel": "info"
 }
 ```
-Allowed [log levels](https://github.com/flatiron/winston#using-logging-levels): debug, info, warn, error
-LogRotateSize: 10MB default
+- Allowed [log levels](https://github.com/flatiron/winston#using-logging-levels): debug, info, warn, error
+- LogRotateSize: 10MB default
 
 ## Install
 ```
