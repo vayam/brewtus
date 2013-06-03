@@ -20,6 +20,7 @@ class Upload
         @filePath = path.join config.files, fileId
         @infoPath = path.resolve "#{@filePath}.json"
         @info = null
+        @stream = null
 
 
     create: (finalLength) ->
@@ -64,6 +65,7 @@ class Upload
             winston.error "file error #{fileId} #{util.inspect e}"
             return {error: [500, "File Load Error"]}
 
+        @stream = fs.createReadStream filePath
         return {info: @info}
 
 
@@ -79,10 +81,20 @@ testUploadPage = (res) ->
 #Required for Browser Uploads
 optionsFile = (req, res, query, matches) ->
     httpStatus res, 200, "Ok"
-
-#@todo implement psuedo Final-Length stream
+ 
+#GET MUST return Content-Length == Final-Length
 getFile = (req, res, query, matches) ->
-    httpStatus res, 405, "Not Allowed" 
+    fileId = matches[2]
+    return httpStatus res, 404, "Not Found" unless fileId?
+
+    u = new Upload(fileId)
+    status = u.load()
+    if status.error?
+        return httpStatus res, status.error[0],  status.error[1]
+
+    res.setHeader "Content-Length", status.info.finalLength
+    u.stream.pipe(res)
+
 
 #Implements 6.1. File Creation
 createFile = (req, res, query, matches) ->
