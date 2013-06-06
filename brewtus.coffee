@@ -9,64 +9,11 @@ uuid = require "node-uuid"
 winston = require "winston"
 
 
+upload = require "./upload"
+
+
 setup = new events.EventEmitter()
 config = {}
-
-
-#Stores File Info in json
-class Upload
-    constructor: (fileId) ->
-        @fileId = fileId
-        @filePath = path.join config.files, fileId
-        @infoPath = path.resolve "#{@filePath}.json"
-        @info = null
-        @stream = null
-
-
-    create: (finalLength) ->
-        try
-            fs.openSync @filePath, 'w'
-        catch error
-            winston.error util.inspect error
-            return {error: [500, "Create Failed"]}
-
-        try
-            info = {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
-            fs.writeFileSync @infoPath, JSON.stringify info
-            @info = info
-        catch error
-            winston.error util.inspect error
-            return {error: [500, "Create Failed - Metadata"]}
-        return {info: @info}
-
-    save: ->
-        try
-            fs.writeFileSync @infoPath, JSON.stringify @info
-        catch error
-            winston.error util.inspect error
-            return {error: [500, "Save Failed - Metadata"]}
-        return {info: @info}
-
-    load: ->
-        filePath = path.join config.files, @fileId
-        return {error: [404, "File Not Found"]} unless fs.existsSync filePath 
-
-        try
-            @info = require @infoPath
-        catch error
-            winston.error util.inspect error
-            return {error: [404, "Not Found - Metadata"]}
-
-        #Force Update offset
-        try
-            stat = fs.statSync filePath
-            @info.offset = stat.size
-        catch e
-            winston.error "file error #{fileId} #{util.inspect e}"
-            return {error: [500, "File Load Error"]}
-
-        @stream = fs.createReadStream filePath
-        return {info: @info}
 
 
 #testUploadPage
@@ -87,13 +34,13 @@ getFile = (req, res, query, matches) ->
     fileId = matches[2]
     return httpStatus res, 404, "Not Found" unless fileId?
 
-    u = new Upload(fileId)
+    u = upload.Upload(config, fileId)
     status = u.load()
     if status.error?
         return httpStatus res, status.error[0],  status.error[1]
 
     res.setHeader "Content-Length", status.info.finalLength
-    u.stream.pipe(res)
+    u.stream().pipe(res)
 
 
 #Implements 6.1. File Creation
@@ -113,7 +60,7 @@ createFile = (req, res, query, matches) ->
 
     #generate fileId
     fileId =  uuid.v1()
-    status = new Upload(fileId).create(finalLength)
+    status = upload.Upload(config, fileId).create(finalLength)
 
     if status.error?
         return httpStatus res, status.error[0],  status.error[1]
@@ -126,7 +73,7 @@ headFile = (req, res, query, matches) ->
     fileId = matches[2]
     return httpStatus res, 404, "Not Found" unless fileId?
 
-    status = new Upload(fileId).load()
+    status = upload.Upload(config, fileId).load()
     if status.error?
         return httpStatus res, status.error[0],  status.error[1]
     info = status.info
@@ -162,7 +109,7 @@ patchFile = (req, res, query, matches) ->
     return httpStatus res, 400, "Invalid Content-Length" if isNaN contentLength or contentLength < 1
 
 
-    u = new Upload(fileId)
+    u = upload.Upload(config, fileId)
     status = u.load()
     if status.error?
         return httpStatus res, status.error[0],  status.error[1]
@@ -197,7 +144,6 @@ patchFile = (req, res, query, matches) ->
         winston.debug util.inspect res
         httpStatus res, 200, "Ok" unless res.headersSent
         u.save(info)
-
 
     ws.on "error", (e) ->
         winston.error "closed the file stream #{fileId} #{util.inspect e}"
