@@ -1,6 +1,7 @@
 fs = require "fs"
 winston = require "winston"
 path = require "path"
+util = require "util"
 
 #Stores File Info in json
 class Upload
@@ -13,7 +14,7 @@ class Upload
 
     create: (finalLength) ->
         try
-            fs.openSync @filePath, 'w'
+            fs.closeSync(fs.openSync(@filePath, 'w'))
         catch error
             winston.error util.inspect error
             return {error: [500, "Create Failed"]}
