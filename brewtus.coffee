@@ -137,13 +137,16 @@ patchFile = (req, res, query, matches) ->
         info.offset +=  buffer.length
         winston.debug "new Offset #{info.offset}"
         return httpStatus res, 500, "Exceeded Final-Length" if info.offset > info.finalLength
-        return httpStatus res, 500, "Exceeded Content-Length" if info.received > contentLength
+        return httpStatus res, 500, "Exceeded Content-Length" if info.received > contentLength   
+
+    req.on "end", ->
+        httpStatus res, 200, "Ok" unless res.headersSent
+        u.save(info)
 
     ws.on "close", ->
         winston.info "closed the file stream #{fileId}"
         winston.debug util.inspect res
-        httpStatus res, 200, "Ok" unless res.headersSent
-        u.save(info)
+
 
     ws.on "error", (e) ->
         winston.error "closed the file stream #{fileId} #{util.inspect e}"
