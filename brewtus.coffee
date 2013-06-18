@@ -156,7 +156,7 @@ patchFile = (req, res, query, matches) ->
     ws.on "error", (e) ->
         winston.error "closed the file stream #{fileId} #{util.inspect e}"
         #Send response
-        return httpStatus res, 500, "File Error"
+        httpStatus res, 500, "File Error"
 
 httpStatus = (res, statusCode, reason, body='') ->
     res.writeHead statusCode, reason
