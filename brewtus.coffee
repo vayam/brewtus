@@ -143,6 +143,11 @@ patchFile = (req, res, query, matches) ->
         httpStatus res, 200, "Ok" unless res.headersSent
         u.save(info)
 
+
+    req.on "close", ->
+        winston.error "client abort. close the file stream #{fileId}"
+        ws.end()
+
     ws.on "close", ->
         winston.info "closed the file stream #{fileId}"
         winston.debug util.inspect res
