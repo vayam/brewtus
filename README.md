@@ -27,7 +27,7 @@ npm install
 ## Run
 
 ```
-coffee -c brewtus.coffee
+coffee -c *.coffee
 node brewtus.js
 ```
 
