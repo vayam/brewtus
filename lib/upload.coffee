@@ -20,7 +20,11 @@ class Upload
             return {error: [500, "Create Failed"]}
 
         try
-            info = {finalLength: finalLength, state: "created", createdOn: Date.now(), offset: 0}
+            info =
+              finalLength: finalLength
+              state: "created"
+              createdOn: Date.now()
+              offset: 0
             fs.writeFileSync @infoPath, JSON.stringify info
             @info = info
         catch error
@@ -37,7 +41,7 @@ class Upload
         return {info: @info}
 
     load: ->
-        return {error: [404, "File Not Found"]} unless fs.existsSync @filePath 
+        return {error: [404, "File Not Found"]} unless fs.existsSync @filePath
 
         try
             @info = require @infoPath

@@ -1,9 +1,0 @@
-{
-	"host":"127.0.0.1",
-	"port":8080, 
-	"server": "BrewTUS/0.1",
-	"files":"files",
-	"logDir": "logs",
-	"logRotateSize": 10485760,
-	"logLevel": "info"
-}

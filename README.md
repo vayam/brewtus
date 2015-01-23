@@ -4,11 +4,19 @@
 
 
 ## Configuration
+
+throught few environment variables:
+
+- PORT: port on this server will sit (default: 1080)
+- FILESDIR: path to folder where the files will land (default: 'files' folder within this project)
+- SERVERSTRING: content of "server" header sent back to clients (default: 'BrewTUS/0.1')
+
+
 edit brewtus.json
 ```js
 {
 	"host": "192.168.1.117",
-	"port": 8080, 
+	"port": 8080,
 	"server": "BrewTUS/0.1",
 	"files": "files",
 	"logDir": "logs",
@@ -16,8 +24,6 @@ edit brewtus.json
 	"logLevel": "info"
 }
 ```
-- Allowed [log levels](https://github.com/flatiron/winston#using-logging-levels): debug, info, warn, error
-- LogRotateSize: 10MB default
 
 ## Install
 ```
@@ -27,8 +33,7 @@ npm install
 ## Run
 
 ```
-coffee -c *.coffee
-node brewtus.js
+node server.js
 ```
 
 ## Test/Try out
@@ -40,7 +45,7 @@ http://127.0.0.1:8080/
 
 or
 
-Command line 
+Command line
 Get [tuspy](https://github.com/vayam/tuspy) client
 ```
 python tuspy.py -f <file>
