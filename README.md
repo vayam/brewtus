@@ -12,19 +12,6 @@ throught few environment variables:
 - SERVERSTRING: content of "server" header sent back to clients (default: 'BrewTUS/0.1')
 
 
-edit brewtus.json
-```js
-{
-	"host": "192.168.1.117",
-	"port": 8080,
-	"server": "BrewTUS/0.1",
-	"files": "files",
-	"logDir": "logs",
-	"logRotateSize": 10485760,
-	"logLevel": "info"
-}
-```
-
 ## Install
 ```
 npm install
