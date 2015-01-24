@@ -1,5 +1,6 @@
 
 should = require('should')
+fs = require('fs')
 request = require('request').defaults({timeout: 5000})
 
 
@@ -179,4 +180,6 @@ module.exports = (db, addr) ->
       res.statusCode.should.eql 200
       should.exist res.headers['offset']
       res.headers['offset'].should.eql samplefile.length.toString()
+      filename = "#{process.env.FILESDIR}/#{location.split('/')[4]}"
+      fs.readFileSync(filename).toString().should.eql samplefile
       done()
