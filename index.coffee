@@ -1,7 +1,8 @@
 
 fs = require 'fs'
 path = require 'path'
-cors = require("cors")
+cors = require 'cors'
+
 controllers = require "./lib/controllers"
 
 
