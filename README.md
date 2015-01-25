@@ -5,11 +5,12 @@
 
 ## Configuration
 
-throught few environment variables:
+through few environment variables:
 
 - PORT: port on this server will sit (default: 1080)
 - FILESDIR: path to folder where the files will land (default: 'files' folder within this project)
 - SERVERSTRING: content of "server" header sent back to clients (default: 'BrewTUS/0.1')
+- BTUSPLUGIN: require string with custom plugin implementation (optional)
 
 
 ## Install
