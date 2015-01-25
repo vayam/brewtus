@@ -16,10 +16,9 @@ exports.testUploadPage = (req, res, next) ->
 
 #GET MUST return Content-Length == Final-Length
 exports.getFile = (req, res, next) ->
-  fileId = matches[2]
-  return res.status(404).send("Not Found") unless fileId?
+  return res.status(404).send("Not Found") unless req.params.id?
 
-  u = upload.Upload({files: res.locals.FILESDIR}, fileId)
+  u = upload.Upload({files: res.locals.FILESDIR}, req.params.id)
   status = u.load()
   if status.error?
     return res.status(status.error[0]).send(status.error[1])
