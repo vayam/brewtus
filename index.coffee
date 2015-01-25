@@ -5,6 +5,11 @@ cors = require 'cors'
 
 controllers = require "./lib/controllers"
 
+if process.env.BTUSPLUGIN
+  plugin = require process.env.BTUSPLUGIN
+else
+  plugin = require "./lib/defaultplugin"
+
 
 corsOpts =
   methods: ["HEAD", "PATCH", "POST", "OPTIONS", "GET"]
@@ -25,6 +30,7 @@ exports.initApp = (app) ->
   app.use (req, res, next) ->
     res.setHeader("Server", serverString)
     res.locals.FILESDIR = filesDir
+    res.locals.plugin = plugin
     next()
 
   app.use cors(corsOpts)

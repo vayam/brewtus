@@ -1,7 +1,6 @@
 
 fs = require "fs"
 path = require "path"
-uuid = require "node-uuid"
 
 upload = require "./upload"
 
@@ -42,7 +41,7 @@ exports.createFile = (req, res, next) ->
     return res.status(400).send("Final-Length Must be Non-Negative")
 
   #generate fileId
-  fileId =  uuid.v1()
+  fileId = res.locals.plugin.getFileId(req)
   status = upload.
     Upload({files: res.locals.FILESDIR}, fileId).create(finalLength)
 
@@ -127,6 +126,8 @@ exports.patchFile = (req, res, next) ->
       return res.status(500).send("Exceeded Content-Length")
 
   req.on "end", ->
+    chunkError = res.locals.plugin.validateChunk(req, info)
+    return res.status(400).send("Invalid Chunk: #{chunkError}") if chunkError
     res.send("Ok") unless res.headersSent
     u.save(info)
 
@@ -135,4 +136,4 @@ exports.patchFile = (req, res, next) ->
 
   ws.on "error", (e) ->
     #Send response
-    res.status(500).send("File Error")
+    res.status(500).send("File Error: #{e}")

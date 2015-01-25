@@ -9,6 +9,7 @@
     "cors": "^2.5.3",
     "express": "^4.11.1",
     "node-uuid": "latest",
+    "sanitize-filename": "^1.1.1",
     "winston": "^0.8.3"
   },
   "keywords": [
@@ -33,10 +34,9 @@
     "grunt-contrib-copy": "~0.4.0",
     "grunt-contrib-watch": "~0.5.3",
     "rimraf": "^2.2.8",
-    "should": "^4.6.1",
+    "should": "^4.3.1",
     "grunt-mocha-test": "~0.8.1",
     "matchdep": "^0.3.0",
-    "request": "^2.51.0",
-    "should": "^4.3.1"
+    "request": "^2.51.0"
   }
 }
