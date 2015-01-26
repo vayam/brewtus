@@ -29,6 +29,23 @@ module.exports = (db, addr) ->
     req.end
 
 
+  it "shall create a new file with custom filename", (done) ->
+    options =
+      url: "#{addr}/files?filename=testfile1.txt"
+      method: 'POST',
+      headers:
+        'Content-Type': 'application/json'
+        'final-length': 123
+
+    req = request options, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 201
+      should.exist res.headers['location']
+      done()
+    req.end
+
+
   it "shall create a new file", (done) ->
     options =
       url: "#{addr}/files"
