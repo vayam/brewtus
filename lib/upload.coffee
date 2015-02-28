@@ -1,4 +1,5 @@
 fs = require "fs"
+mkdirp = require "mkdirp"
 winston = require "winston"
 path = require "path"
 util = require "util"
@@ -8,6 +9,8 @@ class Upload
   constructor: (config, fileId) ->
     @fileId = fileId
     @filePath = path.join config.files, fileId
+    _folder = path.dirname(@filePath)
+    mkdirp.sync _folder unless fs.existsSync _folder
     @infoPath = path.resolve "#{@filePath}.json"
     @info = null
 

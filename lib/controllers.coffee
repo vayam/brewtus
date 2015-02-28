@@ -42,6 +42,10 @@ exports.createFile = (req, res, next) ->
 
   #generate fileId
   fileId = res.locals.plugin.getFileId(req)
+
+  if fileId.indexOf('..') >= 0
+    return res.status(400).send("Bad fileName")
+
   status = upload.
     Upload({files: res.locals.FILESDIR}, fileId).create(finalLength)
 

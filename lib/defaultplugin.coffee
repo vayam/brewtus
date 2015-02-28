@@ -5,8 +5,11 @@ sanitize = require "sanitize-filename"
 
 # creates name of the created file
 exports.getFileId = (req) ->
-  if req.params.filename
-    return sanitize(req.params.filename)
+  if req.query.filename
+    parts = req.query.filename.split('/')
+    for p in parts
+      p = sanitize(p)
+    return parts.join('/')
   else
     return uuid.v1()
 

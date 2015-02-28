@@ -46,6 +46,40 @@ module.exports = (db, addr) ->
     req.end
 
 
+  it "shall create a new file with custom filename in subfolder", (done) ->
+    options =
+      url: "#{addr}/files?filename=sub1/sub2/testfile1.txt"
+      method: 'POST',
+      headers:
+        'Content-Type': 'application/json'
+        'final-length': 123
+
+    req = request options, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 201
+      should.exist res.headers['location']
+      done()
+    req.end
+
+
+  it "mustnot create a new file out of upload folder (usage ../..)", (done) ->
+    options =
+      url: "#{addr}/files?filename=../../testfile1.txt"
+      method: 'POST',
+      headers:
+        'Content-Type': 'application/json'
+        'final-length': 123
+
+    req = request options, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 400
+      should.not.exist res.headers['location']
+      done()
+    req.end
+
+
   it "shall create a new file", (done) ->
     options =
       url: "#{addr}/files"
