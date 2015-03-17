@@ -22,6 +22,9 @@ exports.getFile = (req, res, next) ->
   if status.error?
     return res.status(status.error[0]).send(status.error[1])
 
+  if status.info.offset < status.info.finalLength
+    return res.status(404).send("Not Found")
+
   res.setHeader "Content-Length", status.info.finalLength
   u.stream().pipe(res)
 
@@ -53,7 +56,10 @@ exports.createFile = (req, res, next) ->
     return res.status(status.error[0]).send(status.error[1])
 
   reqpath = req.originalUrl.split('?')[0]
-  loc = "#{req.protocol}://#{req.headers.host}#{reqpath}/#{fileId}"
+  if reqpath[reqpath.length-1] == '/'
+    loc = "#{req.protocol}://#{req.headers.host}#{reqpath}#{fileId}"
+  else
+    loc = "#{req.protocol}://#{req.headers.host}#{reqpath}/#{fileId}"
   res.setHeader "Location", loc
   res.status(201).send("Created")
 
