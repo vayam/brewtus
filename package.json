@@ -2,7 +2,7 @@
   "name": "brewtus",
   "author": "Naren Venkataraman <naren@doorul.com>",
   "description": "TUS Server Implementation for coffee lovers",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "brewtus.coffee",
   "dependencies": {
     "coffee-script": "latest",
