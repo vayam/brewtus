@@ -35,10 +35,10 @@ exports.initApp = (app) ->
 
   app.use cors(corsOpts)
 
+  app.post("/", controllers.createFile)
+  app.head("/:id", controllers.headFile)
   app.get("/:id", controllers.getFile)
-  app.post("/files", controllers.createFile)
-  app.head("/files/:id", controllers.headFile)
-  app.patch("/files/:id", controllers.patchFile)
+  app.patch("/:id", controllers.patchFile)
 
 
 exports.serveTest = (app) ->
