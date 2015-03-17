@@ -8,7 +8,10 @@ module.exports = (db, addr) ->
 
   hoy = {}
   location = null
+  locationWithPath = null
   samplefile = [1 .. 1000].join(',')
+  samplefile2 = [1001 .. 2014].join('-')
+
 
   it "must not create a new file without final-length header", (done) ->
     options =
@@ -52,13 +55,14 @@ module.exports = (db, addr) ->
       method: 'POST',
       headers:
         'Content-Type': 'application/json'
-        'final-length': 123
+        'final-length': samplefile2.length
 
     req = request options, (err, res, body) ->
       return done(err) if err
 
       res.statusCode.should.eql 201
       should.exist res.headers['location']
+      locationWithPath = res.headers['location']
       done()
     req.end
 
@@ -244,4 +248,43 @@ module.exports = (db, addr) ->
       res.statusCode.should.eql 200
       # res.headers['content-type'].should.eql 'plain/text'
       body.should.eql samplefile
+      done()
+
+  ################# samplefile 2 ##################
+
+  it "shall return offset for samplefile2", (done) ->
+    request.head locationWithPath, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 200
+      should.exist res.headers['offset']
+      res.headers['offset'].should.eql '0'
+      done()
+
+
+  it "shall upload samplefile2", (done) ->
+    options =
+      url: locationWithPath
+      method: 'PATCH',
+      headers:
+        'Content-Type': 'application/offset+octet-stream'
+        'Content-Length': samplefile2.length
+        'Offset': 0
+    req = request options, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 200
+      done()
+
+    req.write samplefile2
+    req.end
+
+
+  it "shall return actual samplefile2", (done) ->
+    request.get locationWithPath, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 200
+      # res.headers['content-type'].should.eql 'plain/text'
+      body.should.eql samplefile2
       done()
