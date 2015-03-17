@@ -22,7 +22,7 @@ exports.getFile = (req, res, next) ->
   if status.error?
     return res.status(status.error[0]).send(status.error[1])
 
-  if status.info.offset < status.info.finalLength
+  if status.info.offset != status.info.finalLength
     return res.status(404).send("Not Found")
 
   res.setHeader "Content-Length", status.info.finalLength
