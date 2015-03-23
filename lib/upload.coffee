@@ -46,7 +46,7 @@ class Upload
     return {error: [404, "File Not Found"]} unless fs.existsSync @filePath
 
     try
-      @info = require @infoPath
+      @info = JSON.parse(fs.readFileSync @infoPath)
     catch error
       winston.error util.inspect error
       return {error: [404, "Not Found - Metadata"]}
