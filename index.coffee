@@ -47,10 +47,11 @@ exports.serveTest = (app) ->
   app.get("up.html", controllers.testUploadPage)
 
 
-exports.getInfo = (file, cb) ->
+exports.getInfo = (file, req, cb) ->
   u = upload.Upload({files: filesDir}, file)
   status = u.load()
   return cb status.error if status.error?
 
   status.info.filepath = path.join filesDir, file
+  status.url = upload.getFileUrl(file, req)
   cb null, status.info
