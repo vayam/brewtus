@@ -55,12 +55,8 @@ exports.createFile = (req, res, next) ->
   if status.error?
     return res.status(status.error[0]).send(status.error[1])
 
-  reqpath = req.originalUrl.split('?')[0]
-  if reqpath[reqpath.length-1] == '/'
-    loc = "#{req.protocol}://#{req.headers.host}#{reqpath}#{fileId}"
-  else
-    loc = "#{req.protocol}://#{req.headers.host}#{reqpath}/#{fileId}"
-  res.setHeader "Location", loc
+  location = upload.getFileUrl(fileId, req)
+  res.setHeader "Location", location
   res.status(201).send("Created")
 
 

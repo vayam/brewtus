@@ -66,3 +66,10 @@ class Upload
 
 
 exports.Upload = (config, fileId) -> new Upload config, fileId
+
+exports.getFileUrl = (fileId, req) ->
+  reqpath = req.originalUrl.split('?')[0]
+  if reqpath[reqpath.length-1] == '/'
+    return "#{req.protocol}://#{req.headers.host}#{reqpath}#{fileId}"
+  else
+    return "#{req.protocol}://#{req.headers.host}#{reqpath}/#{fileId}"
