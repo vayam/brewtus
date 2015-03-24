@@ -4,6 +4,7 @@ path = require 'path'
 cors = require 'cors'
 
 controllers = require "./lib/controllers"
+upload = require "./lib/upload"
 
 if process.env.BTUSPLUGIN
   plugin = require process.env.BTUSPLUGIN
@@ -19,10 +20,11 @@ corsOpts =
   ]
   exposedHeaders: ["Location", "Offset"]
 
+filesDir = process.env.FILESDIR || path.join(__dirname, 'files')
+
 
 exports.initApp = (app) ->
 
-  filesDir = process.env.FILESDIR || path.join(__dirname, 'files')
   if not fs.existsSync(filesDir)
     fs.mkdirSync(filesDir)
   serverString = process.env.SERVERSTRING || 'BrewTUS/0.1'
@@ -43,3 +45,12 @@ exports.initApp = (app) ->
 
 exports.serveTest = (app) ->
   app.get("up.html", controllers.testUploadPage)
+
+
+exports.getInfo = (file, cb) ->
+  u = upload.Upload({files: filesDir}, file)
+  status = u.load()
+  return cb status.error if status.error?
+
+  status.info.filepath = path.join filesDir, file
+  cb null, status.info
