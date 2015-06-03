@@ -1,5 +1,9 @@
 # brewtus
 
+
+[![build status](https://travis-ci.org/vencax/brewtus.svg)](https://travis-ci.org/vencax/brewtus)
+
+
 [TUS Protocol 0.2.1](http://www.tus.io/protocols/resumable-upload.html) Server Implementation
 
 
