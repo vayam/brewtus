@@ -67,6 +67,28 @@ module.exports = (db, addr) ->
     req.end
 
 
+  it "shall create a new file with custom filename through formdata", (done) ->
+    fname = 'subform/sub2form/testfileform.txt'
+    options =
+      url: addr
+      method: 'POST',
+      headers:
+        'Content-Type': 'application/json'
+        'final-length': samplefile2.length
+      body:
+        filename: fname
+      json: true
+
+    req = request options, (err, res, body) ->
+      return done(err) if err
+
+      res.statusCode.should.eql 201
+      should.exist res.headers['location']
+      res.headers['location'].indexOf(fname).should.be.above 0
+      done()
+    req.end
+
+
   it "mustnot create a new file out of upload folder (usage ../..)", (done) ->
     options =
       url: "#{addr}/?filename=../../testfile1.txt"

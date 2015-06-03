@@ -2,6 +2,7 @@
 fs = require 'fs'
 path = require 'path'
 cors = require 'cors'
+bodyParser = require 'body-parser'
 
 controllers = require "./lib/controllers"
 upload = require "./lib/upload"
@@ -37,7 +38,7 @@ exports.initApp = (app) ->
 
   app.use cors(corsOpts)
 
-  app.post("/", controllers.createFile)
+  app.post("/", bodyParser.json(), controllers.createFile)
   app.head("/:id(*)", controllers.headFile)
   app.get("/:id(*)", controllers.getFile)
   app.patch("/:id(*)", controllers.patchFile)

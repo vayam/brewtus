@@ -5,8 +5,9 @@ sanitize = require "sanitize-filename"
 
 # creates name of the created file
 exports.getFileId = (req) ->
-  if req.query.filename
-    parts = req.query.filename.split('/')
+  if req.query.filename or req.body.filename
+    fname = req.query.filename or req.body.filename
+    parts = fname.split('/')
     for p in parts
       p = sanitize(p)
     return parts.join('/')

@@ -5,6 +5,7 @@
   "version": "0.2.0",
   "main": "brewtus.coffee",
   "dependencies": {
+    "body-parser": "^1.12.4",
     "coffee-script": "latest",
     "cors": "^2.5.3",
     "express": "^4.11.1",
