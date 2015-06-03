@@ -1,8 +1,8 @@
 {
   "name": "brewtus",
-  "author": "Naren Venkataraman <naren@doorul.com>",
+  "author": "Vaclav Klecanda <vencax@vxk.com>",
   "description": "TUS Server Implementation for coffee lovers",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "brewtus.coffee",
   "dependencies": {
     "body-parser": "^1.12.4",
