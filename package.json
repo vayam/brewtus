@@ -1,20 +1,44 @@
 {
-    "name": "brewtus",
-    "author": "Naren Venkataraman <naren@doorul.com>",
-    "description": "TUS Server Implementation for coffee lovers",
-    "version": "0.0.1",
-    "main": "brewtus.coffee",
-    "dependencies": {
-        "coffee-script": "latest",
-        "node-uuid": "latest",
-        "winston": "latest"
-     },
-    "keywords": [
-        "upload",
-        "tus"
-     ],
-    "repository": "git://github.com/vayam/brewtus",
-    "engines": {
-        "node": "0.10.x"
-    }
+  "name": "brewtus",
+  "author": "Vaclav Klecanda <vencax@vxk.com>",
+  "description": "TUS Server Implementation for coffee lovers",
+  "version": "0.2.1",
+  "main": "brewtus.coffee",
+  "dependencies": {
+    "body-parser": "^1.12.4",
+    "coffee-script": "latest",
+    "cors": "^2.5.3",
+    "express": "^4.11.1",
+    "mkdirp": "^0.5.0",
+    "node-uuid": "latest",
+    "sanitize-filename": "^1.1.1",
+    "winston": "^0.8.3"
+  },
+  "keywords": [
+    "upload",
+    "tus"
+  ],
+  "repository": "git://github.com/vayam/brewtus",
+  "engines": {
+    "node": "0.10.x"
+  },
+  "scripts": {
+    "start": "export NODE_ENV=production && node main.js",
+    "test": "grunt test"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-cli": "*",
+    "grunt-coffeelint": "0.0.8",
+    "grunt-contrib-clean": "~0.4.0",
+    "grunt-contrib-coffee": "~0.6.4",
+    "grunt-contrib-connect": "~0.2.0",
+    "grunt-contrib-copy": "~0.4.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "rimraf": "^2.2.8",
+    "should": "^4.3.1",
+    "grunt-mocha-test": "~0.8.1",
+    "matchdep": "^0.3.0",
+    "request": "^2.51.0"
+  }
 }
